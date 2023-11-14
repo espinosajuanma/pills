@@ -24,7 +24,7 @@ var Cmd = &Z.Cmd{
 		checkCmd,
 	},
 	Shortcuts:   Z.ArgMap{},
-	Version:     `v0.0.1`,
+	Version:     `v0.0.2`,
 	Source:      `https://github.com/espinosajuanma/pills`,
 	Issues:      `https://github.com/espinosajuanma/pills/issues`,
 	Summary:     `Add `,
