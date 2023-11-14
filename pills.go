@@ -46,7 +46,7 @@ func (p Pill) ShouldRemind() bool {
 		p.CalculateDates()
 	}
 	today := time.Now()
-	return p.ReminderDate.Before(today)
+	return today.After(p.ReminderDate)
 }
 
 func (p Pill) ReminderMessage() string {
