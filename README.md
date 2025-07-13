@@ -31,21 +31,28 @@ go install github.com/espinosajuanma/pills/cmd/pills@latest
   - Prints current pill configurations
 - `pills check <alias>`
   - Prints reminder 
+- `pills set-notify`
+  - Set SMTP Configuration
+- `pills notify <alias>`
+  - Sends a notification email if a reminder is due for the given pill alias.
 
-## Cronjob Alarm
+## SMTP Configuration
 
-Set up an alarm every day at one hour that you prefer.
+To use the `notify` command, you need to configure your SMTP server details.
+You can do this using the `set-notify` command 
 
 ```bash
-#!/bin/bash
-msg="$(pills check ibuprofen)"
-if [[ ! -z "$msg" ]]; then
-  notify-send "💊 Refill Reminder" "$msg"
-fi
+pills set-noitify
 ```
 
-The last example would just send a notification. The preffered way you want the notification.
-My intention is connect it to my phone push notifications.
+### Cronjob Alarm
+
+Set up an alarm every day at one hour that you prefer. Edit your cron jobs using
+`crontab -e` and add this line:
+
+```bash
+0 8 * * * pills notify <alias>
+```
 
 ## Tab completion
 
