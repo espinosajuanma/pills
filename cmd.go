@@ -25,21 +25,24 @@ var Cmd = &Z.Cmd{
 		notifyCmd,
 		setNotifyCmd,
 	},
-	Shortcuts:   Z.ArgMap{},
-	Version:     `v0.0.2`,
-	Source:      `https://github.com/espinosajuanma/pills`,
-	Issues:      `https://github.com/espinosajuanma/pills/issues`,
-	Summary:     `Add `,
-	Description: ``,
+	Shortcuts: Z.ArgMap{},
+	Version:   `v0.1.0`,
+	Source:    `https://github.com/espinosajuanma/pills`,
+	Issues:    `https://github.com/espinosajuanma/pills/issues`,
+	Summary:   `A simple CLI tool to remind you to buy your medicine`,
+	Description: `Pills is a command line application to help you keep track of
+	your medication stock and reminds you when you need to buy more.`,
 }
 
 var setPillCmd = &Z.Cmd{
-	Name:        `set`,
-	Aliases:     []string{"add", "update"},
-	Usage:       "<alias>",
-	Commands:    []*Z.Cmd{help.Cmd},
-	Summary:     `configure a new pill`,
-	Description: ``,
+	Name:     `set`,
+	Aliases:  []string{"add", "update"},
+	Usage:    "<alias>",
+	Commands: []*Z.Cmd{help.Cmd},
+	Summary:  `configure a new pill`,
+	Description: `Prompts to configure a new pill or update an existing one
+	identified by its alias. It will ask for details like pill name, stock,
+	dosage, and reminder preferences.`,
 	Call: func(x *Z.Cmd, args ...string) error {
 		if len(args) == 0 {
 			return x.UsageError()
@@ -217,11 +220,12 @@ var setNotifyCmd = &Z.Cmd{
 }
 
 var checkPillCmd = &Z.Cmd{
-	Name:        `check`,
-	Aliases:     []string{"alarm"},
-	Commands:    []*Z.Cmd{help.Cmd},
-	Summary:     `returns a warning message if the pills are close to run out`,
-	Description: ``,
+	Name:     `check`,
+	Aliases:  []string{"alarm"},
+	Commands: []*Z.Cmd{help.Cmd},
+	Summary:  `returns a warning message if the pills are close to run out`,
+	Description: `Checks if a refill reminder is due for the given pill alias.
+	If it is, it prints a reminder message to standard output.`,
 	Call: func(x *Z.Cmd, args ...string) error {
 		if len(args) == 0 {
 			return x.UsageError()
@@ -247,11 +251,13 @@ var checkPillCmd = &Z.Cmd{
 }
 
 var notifyCmd = &Z.Cmd{
-	Name:        `notify`,
-	Aliases:     []string{},
-	Commands:    []*Z.Cmd{help.Cmd},
-	Summary:     `sends a warning email if the pills are close to run out`,
-	Description: ``,
+	Name:     `notify`,
+	Aliases:  []string{},
+	Commands: []*Z.Cmd{help.Cmd},
+	Summary:  `sends a warning email if the pills are close to run out`,
+	Description: `Checks if a refill reminder is due for the given pill alias.
+	If it is, it sends a notification email using the configured SMTP
+	settings.`,
 	Call: func(x *Z.Cmd, args ...string) error {
 		if len(args) == 0 {
 			return x.UsageError()
