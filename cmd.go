@@ -23,10 +23,11 @@ var Cmd = &Z.Cmd{
 		setPillCmd,
 		checkPillCmd,
 		notifyCmd,
-		setNotifyCmd,
+		setEmailNotifyCmd,
+		setTelegramNotifyCmd,
 	},
 	Shortcuts: Z.ArgMap{},
-	Version:   `v0.1.0`,
+	Version:   `v0.2.0`,
 	Source:    `https://github.com/espinosajuanma/pills`,
 	Issues:    `https://github.com/espinosajuanma/pills/issues`,
 	Summary:   `A simple CLI tool to remind you to buy your medicine`,
@@ -139,9 +140,9 @@ var setPillCmd = &Z.Cmd{
 	},
 }
 
-var setNotifyCmd = &Z.Cmd{
-	Name:        `set-notify`,
-	Aliases:     []string{"config-notify"},
+var setEmailNotifyCmd = &Z.Cmd{
+	Name:        `config-email`,
+	Aliases:     []string{},
 	Usage:       "",
 	Commands:    []*Z.Cmd{help.Cmd},
 	Summary:     `configure SMTP notification settings`,
@@ -219,6 +220,41 @@ var setNotifyCmd = &Z.Cmd{
 	},
 }
 
+var setTelegramNotifyCmd = &Z.Cmd{
+	Name:        `config-telegram`,
+	Aliases:     []string{},
+	Usage:       "",
+	Commands:    []*Z.Cmd{help.Cmd},
+	Summary:     `configure Telegram notification settings`,
+	Description: `Prompts for Telegram Bot Token and Chat ID needed for sending notifications.`,
+	Call: func(x *Z.Cmd, args ...string) error {
+		if len(args) > 0 {
+			return x.UsageError()
+		}
+
+		// Bot Token
+		currentToken, _ := x.Root().Get("telegram.token")
+		token := term.Prompt("Telegram Bot Token (leave blank to keep current): ")
+		if token != "" {
+			x.Root().Set("telegram.token", token)
+		} else if currentToken == "" {
+			return fmt.Errorf("telegram.token can't be empty")
+		}
+
+		// Chat ID
+		currentChatID, _ := x.Root().Get("telegram.chat_id")
+		chatID := term.Prompt("Telegram Chat ID [%s] ", currentChatID)
+		if chatID != "" {
+			x.Root().Set("telegram.chat_id", chatID)
+		} else if currentChatID == "" {
+			return fmt.Errorf("telegram.chat_id can't be empty")
+		}
+
+		term.Print("Telegram configuration saved.")
+		return nil
+	},
+}
+
 var checkPillCmd = &Z.Cmd{
 	Name:     `check`,
 	Aliases:  []string{"alarm"},
@@ -250,9 +286,39 @@ var checkPillCmd = &Z.Cmd{
 	},
 }
 
+func getPillAndCheckReminder(x *Z.Cmd, alias string) (*Pill, bool, error) {
+	t, err := x.Root().Get("pill." + alias)
+	if err != nil {
+		return nil, false, err
+	}
+	if t == "" {
+		return nil, false, fmt.Errorf("%s is not a pill", alias)
+	}
+	pill, err := FromJson(t)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if pill.ShouldRemind() {
+		return &pill, true, nil
+	}
+
+	return &pill, false, nil
+}
+
 var notifyCmd = &Z.Cmd{
-	Name:     `notify`,
-	Aliases:  []string{},
+	Name:    `notify`,
+	Summary: `sends a notification if pills are close to running out`,
+	Commands: []*Z.Cmd{
+		help.Cmd,
+		notifyEmailCmd,
+		notifyTelegramCmd,
+	},
+}
+
+var notifyEmailCmd = &Z.Cmd{
+	Name:     `email`,
+	Usage:    "<alias>",
 	Commands: []*Z.Cmd{help.Cmd},
 	Summary:  `sends a warning email if the pills are close to run out`,
 	Description: `Checks if a refill reminder is due for the given pill alias.
@@ -263,19 +329,13 @@ var notifyCmd = &Z.Cmd{
 			return x.UsageError()
 		}
 		alias := args[0]
-		t, err := x.Root().Get("pill." + alias)
-		if err != nil {
-			return err
-		}
-		if t == "" {
-			return fmt.Errorf("%s is not a pill", alias)
-		}
-		pill, err := FromJson(t)
+
+		pill, shouldRemind, err := getPillAndCheckReminder(x, alias)
 		if err != nil {
 			return err
 		}
 
-		if pill.ShouldRemind() {
+		if shouldRemind {
 			smtpConfig, err := GetSmtpConfig(x.Root())
 			if err != nil {
 				return fmt.Errorf("failed to get smtp config: %w", err)
@@ -289,6 +349,43 @@ var notifyCmd = &Z.Cmd{
 				return fmt.Errorf("failed to send email: %w", err)
 			}
 			term.Printf("Notification email sent for %s", pill.PillName)
+		}
+		return nil
+	},
+}
+
+var notifyTelegramCmd = &Z.Cmd{
+	Name:     `telegram`,
+	Usage:    "<alias>",
+	Commands: []*Z.Cmd{help.Cmd},
+	Summary:  `sends a warning via Telegram if the pills are close to run out`,
+	Description: `Checks if a refill reminder is due for the given pill alias.
+	If it is, it sends a notification via Telegram using the configured
+	bot token and chat ID.`,
+	Call: func(x *Z.Cmd, args ...string) error {
+		if len(args) == 0 {
+			return x.UsageError()
+		}
+		alias := args[0]
+
+		pill, shouldRemind, err := getPillAndCheckReminder(x, alias)
+		if err != nil {
+			return err
+		}
+
+		if shouldRemind {
+			telegramConfig, err := GetTelegramConfig(x.Root())
+			if err != nil {
+				return fmt.Errorf("failed to get telegram config: %w", err)
+			}
+
+			body := pill.ReminderMessage()
+
+			err = telegramConfig.SendMessage("e" + body)
+			if err != nil {
+				return fmt.Errorf("failed to send telegram message: %w", err)
+			}
+			term.Printf("Telegram notification sent for %s", pill.PillName)
 		}
 		return nil
 	},
