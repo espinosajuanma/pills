@@ -381,7 +381,7 @@ var notifyTelegramCmd = &Z.Cmd{
 
 			body := pill.ReminderMessage()
 
-			err = telegramConfig.SendMessage("e" + body)
+			err = telegramConfig.SendMessage("💊" + body)
 			if err != nil {
 				return fmt.Errorf("failed to send telegram message: %w", err)
 			}
